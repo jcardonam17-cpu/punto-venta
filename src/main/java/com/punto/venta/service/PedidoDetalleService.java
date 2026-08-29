@@ -1,0 +1,17 @@
+package com.punto.venta.service;
+
+import java.math.BigDecimal; import java.util.List; import java.util.stream.Collectors;
+import org.springframework.stereotype.Service;
+import com.punto.venta.dto.PedidoDetalleDTO; import com.punto.venta.entity.Pedido; import com.punto.venta.entity.PedidoDetalle; import com.punto.venta.entity.Producto; import com.punto.venta.repository.PedidoDetalleRepository; import com.punto.venta.repository.PedidoRepository; import com.punto.venta.repository.ProductoRepository;
+
+@Service
+public class PedidoDetalleService {
+ private final PedidoDetalleRepository pedidoDetalleRepository; private final PedidoRepository pedidoRepository; private final ProductoRepository productoRepository;
+ public PedidoDetalleService(PedidoDetalleRepository r, PedidoRepository pr, ProductoRepository pro){pedidoDetalleRepository=r;pedidoRepository=pr;productoRepository=pro;}
+ public List<PedidoDetalleDTO> listarDetalles(){return pedidoDetalleRepository.findAll().stream().map(this::convertirADTO).collect(Collectors.toList());}
+ public PedidoDetalleDTO crear(PedidoDetalleDTO dto){Pedido p=pedidoRepository.findById(dto.getIdPedido()).orElseThrow(()->new RuntimeException("El pedido no existe")); Producto pro=productoRepository.findById(dto.getIdProducto()).orElseThrow(()->new RuntimeException("El producto no existe")); PedidoDetalle d=new PedidoDetalle(); d.setEstado(dto.getEstado()!=null?dto.getEstado():true); d.setCantidad(dto.getCantidad()); d.setPrecioUnitario(dto.getPrecioUnitario()); d.setSubtotal(dto.getSubtotal()!=null?dto.getSubtotal():dto.getPrecioUnitario().multiply(BigDecimal.valueOf(dto.getCantidad()))); d.setIdPedido(p); d.setIdProducto(pro); return convertirADTO(pedidoDetalleRepository.save(d));}
+ public PedidoDetalleDTO actualizar(Integer id, PedidoDetalleDTO dto){PedidoDetalle d=pedidoDetalleRepository.findById(id).orElseThrow(()->new RuntimeException("El detalle no existe")); if(dto.getIdPedido()!=null)d.setIdPedido(pedidoRepository.findById(dto.getIdPedido()).orElseThrow(()->new RuntimeException("El pedido no existe"))); if(dto.getIdProducto()!=null)d.setIdProducto(productoRepository.findById(dto.getIdProducto()).orElseThrow(()->new RuntimeException("El producto no existe"))); if(dto.getCantidad()!=null)d.setCantidad(dto.getCantidad()); if(dto.getPrecioUnitario()!=null)d.setPrecioUnitario(dto.getPrecioUnitario()); if(dto.getSubtotal()!=null)d.setSubtotal(dto.getSubtotal()); else if(d.getPrecioUnitario()!=null&&d.getCantidad()!=null)d.setSubtotal(d.getPrecioUnitario().multiply(BigDecimal.valueOf(d.getCantidad()))); if(dto.getEstado()!=null)d.setEstado(dto.getEstado()); return convertirADTO(pedidoDetalleRepository.save(d));}
+ public void eliminar(Integer id){PedidoDetalle d=pedidoDetalleRepository.findById(id).orElseThrow(()->new RuntimeException("El detalle no existe"));pedidoDetalleRepository.delete(d);}
+ public PedidoDetalleDTO anular(Integer id){PedidoDetalle d=pedidoDetalleRepository.findById(id).orElseThrow(()->new RuntimeException("El detalle no existe"));d.setEstado(false);return convertirADTO(pedidoDetalleRepository.save(d));}
+ private PedidoDetalleDTO convertirADTO(PedidoDetalle d){PedidoDetalleDTO dto=new PedidoDetalleDTO();dto.setIdPedidoDetalle(d.getIdPedidoDetalle());dto.setEstado(d.getEstado());dto.setCantidad(d.getCantidad());dto.setPrecioUnitario(d.getPrecioUnitario());dto.setSubtotal(d.getSubtotal());if(d.getIdPedido()!=null)dto.setIdPedido(d.getIdPedido().getIdPedido());if(d.getIdProducto()!=null)dto.setIdProducto(d.getIdProducto().getIdProducto());return dto;}
+}
